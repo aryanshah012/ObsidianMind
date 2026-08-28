@@ -1,5 +1,5 @@
 # ==============================================================================
-# ObsidianMind - Production Multi-Stage Dockerfile
+# ObsidianMind - Production Multi-Stage Dockerfile (Ultra-Fast CPU Optimized)
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
@@ -9,7 +9,7 @@ FROM node:20-alpine AS frontend-builder
 WORKDIR /app/frontend
 
 COPY frontend/package*.json ./
-RUN npm ci
+RUN npm install --no-audit --prefer-offline
 
 COPY frontend/ ./
 RUN npm run build
@@ -26,18 +26,19 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Install system dependencies needed for compiling and PDF/Torch utilities
+# Install minimal system dependencies (curl for healthchecks)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
     curl \
-    git \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python requirements
+# Install lightweight CPU-only PyTorch first (avoids massive 1.5GB CUDA GPU wheel)
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+
+# Install remaining Python requirements
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application backend, evaluation, and data
+# Copy application backend, evaluation, and sample data
 COPY app/ app/
 COPY data/ data/
 COPY eval/ eval/
