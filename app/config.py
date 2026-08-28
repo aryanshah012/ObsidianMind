@@ -45,10 +45,11 @@ class Settings(BaseSettings):
     LLM_MAX_TOKENS: int = 1500
 
     # Embedding Settings
-    EMBEDDING_PROVIDER: Literal["huggingface", "google", "openai"] = Field(
-        default="huggingface", description="Embedding provider"
+    EMBEDDING_PROVIDER: Literal["huggingface", "google", "openai", "mock"] = Field(
+        default="google" if os.getenv("GOOGLE_API_KEY") else "huggingface",
+        description="Embedding provider"
     )
-    EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
+    EMBEDDING_MODEL: str = "gemini-embedding-001" if os.getenv("GOOGLE_API_KEY") else "all-MiniLM-L6-v2"
 
     # Vector Store Settings
     CHROMA_PERSIST_DIRECTORY: str = str(BASE_DIR / "chroma_db")

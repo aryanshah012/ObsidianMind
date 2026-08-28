@@ -1,5 +1,5 @@
 # ==============================================================================
-# ObsidianMind - Production Multi-Stage Dockerfile (Ultra-Fast CPU Optimized)
+# ObsidianMind - Production Multi-Stage Dockerfile (Ultra-Low Memory for 512MB RAM)
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
@@ -19,22 +19,27 @@ RUN npm run build
 # ------------------------------------------------------------------------------
 FROM python:3.11-slim AS runner
 
-# Prevent Python from writing .pyc and enable unbuffered output
+# Prevent Python from writing .pyc, enable unbuffered output, configure low-memory defaults
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PORT=8000
+    PORT=8000 \
+    EMBEDDING_PROVIDER=google \
+    EMBEDDING_MODEL=gemini-embedding-001 \
+    LLM_PROVIDER=google \
+    LLM_MODEL=gemini-3.5-flash-lite \
+    MALLOC_ARENA_MAX=2
 
 WORKDIR /app
 
-# Install minimal system dependencies (curl for healthchecks)
+# Install minimal system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install lightweight CPU-only PyTorch first (avoids massive 1.5GB CUDA GPU wheel)
+# Install lightweight CPU-only PyTorch first to prevent CUDA 1.5GB OOM during pip install
 RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 
-# Install remaining Python requirements
+# Install remaining requirements
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
