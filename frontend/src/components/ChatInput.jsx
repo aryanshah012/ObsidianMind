@@ -96,16 +96,16 @@ export default function ChatInput({
   const isFiltered = selectedDocFilter && selectedDocFilter.length > 0 && selectedDocFilter.length < notes.length;
 
   return (
-    <div className="p-4 sm:p-6 sticky bottom-0 z-20 pointer-events-none">
+    <div className="p-2.5 sm:p-4 md:p-6 sticky bottom-0 z-20 pointer-events-none w-full">
       <form
         onSubmit={handleSubmit}
-        className="max-w-3xl mx-auto pointer-events-auto relative"
+        className="max-w-3xl mx-auto pointer-events-auto relative w-full"
       >
         {/* Multi-Document Selection Popover */}
         {isDocFilterOpen && (
           <div
             ref={filterPopoverRef}
-            className="absolute left-0 bottom-full mb-2 w-80 sm:w-96 rounded-lg bg-surface border border-border shadow-elevated p-3.5 space-y-3 z-40 animate-fade-in font-sans"
+            className="absolute left-1/2 -translate-x-1/2 sm:left-0 sm:translate-x-0 bottom-full mb-2 w-[calc(100vw-1.5rem)] sm:w-96 max-w-sm rounded-lg bg-surface border border-border shadow-elevated p-3.5 space-y-3 z-40 animate-fade-in font-sans"
           >
             <div className="flex items-center justify-between border-b border-border pb-2">
               <div className="flex items-center gap-2">
@@ -120,7 +120,7 @@ export default function ChatInput({
                   onClick={handleSelectAllDocs}
                   className="text-xs font-mono text-sage hover:underline"
                 >
-                  Select all
+                  All
                 </button>
                 <span className="text-zinc-300">·</span>
                 <button
@@ -153,7 +153,7 @@ export default function ChatInput({
             </div>
 
             {/* Document Checklist */}
-            <div className="max-h-52 overflow-y-auto custom-scrollbar space-y-1 pr-1">
+            <div className="max-h-48 overflow-y-auto custom-scrollbar space-y-1 pr-1">
               {filteredDocs.length === 0 ? (
                 <div className="py-4 text-center text-xs text-charcoal-muted font-mono">
                   No matching documents.
@@ -182,7 +182,7 @@ export default function ChatInput({
                         )}
                         <span className="truncate">{doc.title}</span>
                       </div>
-                      <span className="font-mono text-[10.5px] text-charcoal-muted shrink-0">
+                      <span className="font-mono text-[10px] text-charcoal-muted shrink-0">
                         {doc.folder || 'Root'}/
                       </span>
                     </button>
@@ -192,7 +192,7 @@ export default function ChatInput({
             </div>
 
             <div className="pt-2 border-t border-border flex items-center justify-between text-xs font-mono text-charcoal-muted">
-              <span>Retrieval will target only checked notes</span>
+              <span>Targets checked notes</span>
               <button
                 type="button"
                 onClick={() => setIsDocFilterOpen(false)}
@@ -204,15 +204,15 @@ export default function ChatInput({
           </div>
         )}
 
-        <div className="rounded-xl bg-surface border border-border shadow-dock p-3.5 space-y-2.5 focus-within:border-zinc-400 transition-all">
+        <div className="rounded-xl bg-surface border border-border shadow-dock p-2.5 sm:p-3.5 space-y-2 focus-within:border-zinc-400 transition-all">
           {/* Top Metadata Row: @all-notes / multi-select pill & Model Dropdown */}
-          <div className="flex items-center justify-between select-none">
+          <div className="flex items-center justify-between select-none gap-2">
             {/* Clickable Multi-Document Pill */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 min-w-0">
               <button
                 type="button"
                 onClick={() => setIsDocFilterOpen(!isDocFilterOpen)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md border text-xs font-mono transition-all ${
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md border text-[11px] sm:text-xs font-mono transition-all truncate max-w-[130px] sm:max-w-[200px] ${
                   isFiltered
                     ? 'bg-sage-light text-sage border-sage/40 font-semibold shadow-xs'
                     : 'bg-canvas-subtle border-border text-charcoal hover:bg-surface-hover'
@@ -220,19 +220,19 @@ export default function ChatInput({
                 title="Click to select multiple documents for grounded retrieval"
               >
                 <span className="text-zinc-400">@</span>
-                <span>
+                <span className="truncate">
                   {isFiltered
-                    ? `${selectedDocFilter.length} doc${selectedDocFilter.length === 1 ? '' : 's'} selected`
+                    ? `${selectedDocFilter.length} doc${selectedDocFilter.length === 1 ? '' : 's'}`
                     : 'all-notes'}
                 </span>
-                <ChevronDown className="w-3.5 h-3.5 text-charcoal-muted" />
+                <ChevronDown className="w-3 h-3 text-charcoal-muted shrink-0" />
               </button>
 
               {isFiltered && (
                 <button
                   type="button"
                   onClick={handleClearDocFilter}
-                  className="p-1 rounded hover:bg-canvas-subtle text-charcoal-muted hover:text-rose-600 transition-colors"
+                  className="p-1 rounded hover:bg-canvas-subtle text-charcoal-muted hover:text-rose-600 transition-colors shrink-0"
                   title="Reset to all notes"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -241,18 +241,18 @@ export default function ChatInput({
             </div>
 
             {/* Model Selector Dropdown */}
-            <div className="relative">
+            <div className="relative shrink-0">
               <button
                 type="button"
                 onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-canvas-subtle border border-border text-xs font-mono text-charcoal hover:bg-surface-hover transition-colors"
+                className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-canvas-subtle border border-border text-[11px] sm:text-xs font-mono text-charcoal hover:bg-surface-hover transition-colors max-w-[135px] sm:max-w-[180px] truncate"
               >
-                <span>{currentModelObj.label}</span>
-                <ChevronDown className="w-3.5 h-3.5 text-charcoal-muted" />
+                <span className="truncate">{currentModelObj.label}</span>
+                <ChevronDown className="w-3 h-3 text-charcoal-muted shrink-0" />
               </button>
 
               {isModelDropdownOpen && (
-                <div className="absolute right-0 bottom-full mb-1.5 w-40 rounded-lg bg-surface border border-border shadow-elevated p-1 space-y-0.5 z-30 font-mono text-xs">
+                <div className="absolute right-0 bottom-full mb-1.5 w-44 rounded-lg bg-surface border border-border shadow-elevated p-1 space-y-0.5 z-30 font-mono text-xs">
                   {MODELS.map((m) => (
                     <button
                       key={m.id}
@@ -261,13 +261,13 @@ export default function ChatInput({
                         onSelectModel(m.id, m.provider);
                         setIsModelDropdownOpen(false);
                       }}
-                      className={`w-full text-left px-2.5 py-1.5 rounded-md flex items-center justify-between transition-colors ${
+                      className={`w-full text-left px-2 py-1.5 rounded-md flex items-center justify-between transition-colors text-xs ${
                         selectedModel === m.id
                           ? 'bg-sage-light text-sage font-bold'
                           : 'text-charcoal-muted hover:text-charcoal hover:bg-surface-hover'
                       }`}
                     >
-                      <span>{m.label}</span>
+                      <span className="truncate">{m.label}</span>
                     </button>
                   ))}
                 </div>
@@ -276,7 +276,7 @@ export default function ChatInput({
           </div>
 
           {/* Text Input & Send Button */}
-          <div className="flex items-end gap-2.5">
+          <div className="flex items-end gap-2">
             <textarea
               ref={textareaRef}
               rows={1}
@@ -286,18 +286,18 @@ export default function ChatInput({
               disabled={disabled}
               placeholder={
                 disabled
-                  ? 'Indexing documents...'
+                  ? 'Indexing...'
                   : isFiltered
-                  ? `Ask a question grounded in ${selectedDocFilter.length} selected doc(s)...`
+                  ? `Ask grounded in ${selectedDocFilter.length} doc(s)...`
                   : 'Ask a question about your vault...'
               }
-              className="flex-1 bg-transparent px-1.5 py-1.5 text-[15px] sm:text-[16px] text-charcoal placeholder-charcoal-subtle focus:outline-none resize-none max-h-36 custom-scrollbar font-sans leading-relaxed"
+              className="flex-1 bg-transparent px-1 py-1 text-[16px] text-charcoal placeholder-charcoal-subtle focus:outline-none resize-none max-h-32 custom-scrollbar font-sans leading-relaxed min-w-0"
             />
 
             <button
               type="submit"
               disabled={!input.trim() || isLoading || disabled}
-              className="h-9 w-9 rounded-lg bg-[#2E7D6A] hover:bg-[#266757] text-white flex items-center justify-center transition-all disabled:opacity-40 active:scale-[0.96] shadow-sm shrink-0"
+              className="h-8.5 w-8.5 sm:h-9 sm:w-9 rounded-lg bg-[#2E7D6A] hover:bg-[#266757] text-white flex items-center justify-center transition-all disabled:opacity-40 active:scale-[0.96] shadow-sm shrink-0"
               title="Send Query (Enter)"
             >
               {isLoading ? (

@@ -14,49 +14,48 @@ export default function Navbar({
   const getTabTitle = () => {
     switch (activeTab) {
       case 'dashboard':
-        return 'Vault Analytics & Health';
+        return 'Vault Analytics';
       case 'documents':
         return 'Document Index';
       default:
-        return 'Ask your knowledge base';
+        return 'Ask knowledge base';
     }
   };
 
   return (
-    <header className="h-20 w-full shrink-0 border-b border-border bg-canvas/90 backdrop-blur-sm px-6 sm:px-10 lg:px-12 flex items-center justify-between sticky top-0 z-30 select-none">
+    <header className="h-16 sm:h-20 w-full shrink-0 border-b border-border bg-canvas/95 backdrop-blur-md px-3.5 sm:px-8 lg:px-10 flex items-center justify-between sticky top-0 z-30 select-none">
       {/* Left: Breadcrumbs & Section Title */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2.5 sm:gap-4 min-w-0">
         <button
           onClick={onToggleSidebar}
-          className="lg:hidden p-2 rounded-lg hover:bg-surface-hover text-charcoal-muted hover:text-charcoal transition-colors border border-border shadow-subtle"
+          className="lg:hidden p-2 rounded-lg hover:bg-surface-hover text-charcoal-muted hover:text-charcoal transition-colors border border-border shadow-subtle shrink-0"
           aria-label="Toggle Navigation"
         >
-          {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          {isSidebarOpen ? <X className="w-4.5 h-4.5" /> : <Menu className="w-4.5 h-4.5" />}
         </button>
 
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-charcoal-muted font-medium">
-            <span>WORKSPACE</span>
+        <div className="min-w-0 space-y-0.5">
+          <div className="flex items-center gap-1.5 font-mono text-[10px] sm:text-xs uppercase tracking-wider text-charcoal-muted font-medium truncate">
+            <span className="hidden xs:inline">VAULT:</span>
+            <span className="text-sage font-bold truncate max-w-[110px] sm:max-w-[200px]">{activeVaultName}</span>
             <span className="text-zinc-400">/</span>
-            <span className="text-sage font-bold">{activeVaultName}</span>
-            <span className="text-zinc-400">/</span>
-            <span className="text-charcoal-soft font-bold">{activeTab}</span>
+            <span className="text-charcoal-soft font-semibold capitalize">{activeTab}</span>
           </div>
 
-          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-charcoal font-sans">
+          <h2 className="text-base sm:text-xl lg:text-2xl font-bold tracking-tight text-charcoal font-sans truncate">
             {getTabTitle()}
           </h2>
         </div>
       </div>
 
       {/* Right: Upload Vault & 1-Click Demo Actions */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
         {/* 1-Click Sample Vault Demo */}
         {onLoadSample && (
           <button
             onClick={onLoadSample}
             disabled={isIndexing}
-            className="hidden sm:flex h-10 px-3.5 rounded-lg bg-surface hover:bg-surface-hover text-charcoal font-sans text-xs font-semibold items-center gap-2 border border-border transition-all shadow-subtle active:scale-[0.98] disabled:opacity-50"
+            className="hidden md:flex h-9 sm:h-10 px-3 sm:px-3.5 rounded-lg bg-surface hover:bg-surface-hover text-charcoal font-sans text-xs font-semibold items-center gap-2 border border-border transition-all shadow-subtle active:scale-[0.98] disabled:opacity-50"
             title="Load sample Obsidian notes into this workspace"
           >
             {isIndexing ? (
@@ -70,16 +69,17 @@ export default function Navbar({
 
         <button
           onClick={onOpenUpload}
-          className="h-10 px-4 rounded-lg bg-surface hover:bg-surface-hover text-charcoal font-sans text-sm font-semibold flex items-center gap-2.5 border border-border transition-all shadow-subtle active:scale-[0.98]"
+          className="h-9 sm:h-10 px-3 sm:px-4 rounded-lg bg-surface hover:bg-surface-hover text-charcoal font-sans text-xs sm:text-sm font-semibold flex items-center gap-1.5 sm:gap-2.5 border border-border transition-all shadow-subtle active:scale-[0.98]"
         >
-          <Upload className="w-4 h-4 text-charcoal" />
-          <span>Upload Notes</span>
+          <Upload className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-charcoal" />
+          <span className="hidden sm:inline">Upload Notes</span>
+          <span className="sm:hidden">Upload</span>
         </button>
 
         {onClearChat && activeTab === 'chat' && (
           <button
             onClick={onClearChat}
-            className="h-10 w-10 rounded-lg bg-surface hover:bg-surface-hover text-charcoal-muted hover:text-charcoal flex items-center justify-center border border-border transition-all shadow-subtle active:scale-[0.98]"
+            className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg bg-surface hover:bg-surface-hover text-charcoal-muted hover:text-charcoal flex items-center justify-center border border-border transition-all shadow-subtle active:scale-[0.98] shrink-0"
             title="Clear Conversation History"
           >
             <Trash2 className="w-4 h-4" />

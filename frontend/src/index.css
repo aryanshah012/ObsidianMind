@@ -7,26 +7,33 @@
 }
 
 html,
-body,
-#root {
+body {
   height: 100%;
   width: 100%;
   margin: 0;
   padding: 0;
   overflow: hidden;
-  position: fixed;
-  inset: 0;
   background-color: #F7F5F0;
   color: #18181B;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+}
+
+#root {
+  height: 100%;
+  height: 100dvh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 /* Custom Warm Scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -66,6 +73,15 @@ body,
   font-size: 15px;
   line-height: 1.7;
   letter-spacing: -0.011em;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+@media (max-width: 640px) {
+  .prose-editorial {
+    font-size: 14px;
+    line-height: 1.65;
+  }
 }
 
 .prose-editorial p {
@@ -89,19 +105,19 @@ body,
 
 .prose-editorial h1 {
   font-family: 'Newsreader', Georgia, serif;
-  font-size: 1.6rem;
+  font-size: 1.4rem;
   line-height: 1.25;
   font-weight: 500;
 }
 
 .prose-editorial h2 {
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   border-bottom: 1px solid #E5E2DC;
   padding-bottom: 0.25rem;
 }
 
 .prose-editorial h3 {
-  font-size: 1.05rem;
+  font-size: 1.02rem;
 }
 
 .prose-editorial ul,
@@ -117,24 +133,26 @@ body,
 
 .prose-editorial code {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 12.5px;
+  font-size: 12px;
   background-color: #ECE9E1;
   color: #1C5447;
-  padding: 2px 6px;
+  padding: 2px 5px;
   border-radius: 4px;
   border: 1px solid #DFDBD1;
+  word-break: break-all;
 }
 
 .prose-editorial pre {
   background-color: #24292E;
   color: #E1E4E8;
-  padding: 1rem;
+  padding: 0.75rem;
   border-radius: 8px;
   overflow-x: auto;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 13px;
+  font-size: 12px;
   margin-top: 0.75rem;
   margin-bottom: 0.75rem;
+  max-width: 100%;
 }
 
 .prose-editorial pre code {
@@ -142,12 +160,13 @@ body,
   color: inherit;
   padding: 0;
   border: none;
+  word-break: normal;
 }
 
 .prose-editorial blockquote {
   border-left: 3px solid #2E7D6A;
-  padding-left: 1rem;
+  padding-left: 0.85rem;
   font-style: italic;
   color: #57534E;
-  margin: 1rem 0;
+  margin: 0.85rem 0;
 }

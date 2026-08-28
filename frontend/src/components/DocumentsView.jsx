@@ -101,7 +101,7 @@ export default function DocumentsView({
     filteredNotes.every((n) => selectedDocFilter.includes(n.source));
 
   return (
-    <div className="w-full max-w-[72vw] mx-auto py-8 sm:py-10 px-4 sm:px-6 space-y-5 animate-fade-in">
+    <div className="w-full max-w-5xl mx-auto py-6 sm:py-10 px-3.5 sm:px-6 space-y-5 animate-fade-in">
       {/* Search & Folder Filter Bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="relative flex-1 max-w-md">

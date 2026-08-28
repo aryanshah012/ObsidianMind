@@ -38,7 +38,7 @@ export default function Sidebar({
 
   return (
     <aside
-      className={`fixed lg:sticky top-0 left-0 z-40 w-72 sm:w-80 min-w-[19rem] max-w-[20rem] h-screen shrink-0 bg-surface-sidebar border-r border-border flex flex-col justify-between transition-transform duration-200 ease-out select-none shadow-sm ${
+      className={`fixed lg:sticky top-0 left-0 z-50 w-72 sm:w-80 max-w-[85vw] h-full h-[100dvh] shrink-0 bg-surface-sidebar border-r border-border flex flex-col justify-between transition-transform duration-200 ease-out select-none shadow-xl lg:shadow-none ${
         isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       }`}
     >

@@ -37,7 +37,7 @@ export default function DashboardView({
   const vaultName = activeVault?.name || stats?.vault_name || 'Primary Vault';
 
   return (
-    <div className="w-full max-w-[72vw] mx-auto py-8 sm:py-10 px-4 sm:px-6 space-y-7 animate-fade-in">
+    <div className="w-full max-w-5xl mx-auto py-6 sm:py-10 px-3.5 sm:px-6 space-y-6 sm:space-y-7 animate-fade-in">
       {/* Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
         <div>

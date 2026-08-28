@@ -329,7 +329,7 @@ export default function App() {
   };
 
   return (
-    <div className="fixed inset-0 h-screen w-screen overflow-hidden bg-canvas text-charcoal flex font-sans select-none">
+    <div className="fixed inset-0 h-full h-[100dvh] w-full overflow-hidden bg-canvas text-charcoal flex font-sans select-none">
       {/* Toast Notification */}
       {toast && (
         <div className="fixed bottom-6 right-6 z-50 animate-fade-in">
@@ -371,7 +371,7 @@ export default function App() {
       {/* Mobile Drawer Backdrop */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/40 z-30 lg:hidden backdrop-blur-xs transition-opacity"
+          className="fixed inset-0 bg-black/40 z-40 lg:hidden backdrop-blur-xs transition-opacity"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
@@ -395,7 +395,7 @@ export default function App() {
       />
 
       {/* Right Column: Navbar (Top Fixed) + Center Scrollable Content Area */}
-      <div className="flex-1 flex flex-col h-screen min-w-0 overflow-hidden bg-canvas relative">
+      <div className="flex-1 flex flex-col h-full h-[100dvh] min-w-0 overflow-hidden bg-canvas relative">
         {/* Top Navbar: Pinned firmly at top */}
         <Navbar
           activeTab={activeTab}
