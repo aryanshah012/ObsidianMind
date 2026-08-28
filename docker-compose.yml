@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  obsidianmind:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: obsidianmind-app
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - LLM_PROVIDER=google
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - LLM_MODEL=gemini-3.5-flash-lite
+      - EMBEDDING_PROVIDER=huggingface
+      - EMBEDDING_MODEL=all-MiniLM-L6-v2
+    volumes:
+      - chroma_data:/app/chroma_db
+      - vault_data:/app/data/vaults
+
+volumes:
+  chroma_data:
+  vault_data:

@@ -1,0 +1,36 @@
+{
+  "active_vault_id": "default",
+  "updated_at": 1787914733.90082,
+  "vaults": [
+    {
+      "id": "default",
+      "name": "Primary Vault",
+      "description": "Default personal knowledge vault with general notes and study guides",
+      "icon": "Folder",
+      "color": "#2E7D6A",
+      "is_default": true,
+      "created_at": 1787912629.0436249,
+      "collection_name": "obsidian_vault"
+    },
+    {
+      "id": "academics",
+      "name": "College & Academics",
+      "description": "Courses, identity documents, grade records, and syllabus notes",
+      "icon": "GraduationCap",
+      "color": "#3B82F6",
+      "is_default": false,
+      "created_at": 1787912629.043633,
+      "collection_name": "obsidian_vault_academics"
+    },
+    {
+      "id": "ai-research",
+      "name": "AI & Research",
+      "description": "Machine learning papers, Transformer architectures, and RAG guides",
+      "icon": "Cpu",
+      "color": "#8B5CF6",
+      "is_default": false,
+      "created_at": 1787912629.043636,
+      "collection_name": "obsidian_vault_research"
+    }
+  ]
+}

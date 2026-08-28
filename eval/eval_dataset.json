@@ -1,0 +1,146 @@
+[
+  {
+    "id": "tc-01",
+    "category": "direct_factual",
+    "query": "What is the self-attention formula mentioned in my LLM notes?",
+    "expected_route": "KNOWLEDGE_BASE_QUERY",
+    "expected_sources": ["AI/LLMs.md"],
+    "must_contain_keywords": ["softmax", "Q", "K", "V"],
+    "should_have_disclaimer": false
+  },
+  {
+    "id": "tc-02",
+    "category": "direct_factual",
+    "query": "What embedding model is used in the CineMatch movie recommendation project?",
+    "expected_route": "KNOWLEDGE_BASE_QUERY",
+    "expected_sources": ["Projects/Movie_Recommendation.md"],
+    "must_contain_keywords": ["all-MiniLM-L6-v2"],
+    "should_have_disclaimer": false
+  },
+  {
+    "id": "tc-03",
+    "category": "direct_factual",
+    "query": "What are the results and evaluation metrics for the CineMatch project?",
+    "expected_route": "KNOWLEDGE_BASE_QUERY",
+    "expected_sources": ["Projects/Movie_Recommendation.md"],
+    "must_contain_keywords": ["0.864", "RMSE", "Precision@10"],
+    "should_have_disclaimer": false
+  },
+  {
+    "id": "tc-04",
+    "category": "multi_document",
+    "query": "How are embeddings used in both the RAG pipeline and the Movie Recommendation project?",
+    "expected_route": "KNOWLEDGE_BASE_QUERY",
+    "expected_sources": ["AI/RAG.md", "Projects/Movie_Recommendation.md"],
+    "must_contain_keywords": ["embeddings", "vector"],
+    "should_have_disclaimer": false
+  },
+  {
+    "id": "tc-05",
+    "category": "multi_document",
+    "query": "How do LLMs, RAG, and AI Agents connect together according to my notes?",
+    "expected_route": "KNOWLEDGE_BASE_QUERY",
+    "expected_sources": ["AI/LLMs.md", "AI/RAG.md", "AI/Agents.md"],
+    "must_contain_keywords": ["grounding", "retrieval", "agent"],
+    "should_have_disclaimer": false
+  },
+  {
+    "id": "tc-06",
+    "category": "summarization",
+    "query": "Summarize my notes on Retrieval-Augmented Generation.",
+    "expected_route": "KNOWLEDGE_BASE_QUERY",
+    "expected_sources": ["AI/RAG.md"],
+    "must_contain_keywords": ["ingestion", "retrieval", "generation"],
+    "should_have_disclaimer": false
+  },
+  {
+    "id": "tc-07",
+    "category": "summarization",
+    "query": "Summarize the Real-Time SMS & Email Spam Detector project notes.",
+    "expected_route": "KNOWLEDGE_BASE_QUERY",
+    "expected_sources": ["Projects/Spam_Detector.md"],
+    "must_contain_keywords": ["Naive Bayes", "TF-IDF", "FastAPI"],
+    "should_have_disclaimer": false
+  },
+  {
+    "id": "tc-08",
+    "category": "comparison",
+    "query": "Compare RAG vs fine-tuning according to my notes.",
+    "expected_route": "KNOWLEDGE_BASE_QUERY",
+    "expected_sources": ["AI/RAG.md"],
+    "must_contain_keywords": ["external", "weights", "cost"],
+    "should_have_disclaimer": false
+  },
+  {
+    "id": "tc-09",
+    "category": "comparison",
+    "query": "Compare Multinomial Naive Bayes and DistilBERT in my spam detector project.",
+    "expected_route": "KNOWLEDGE_BASE_QUERY",
+    "expected_sources": ["Projects/Spam_Detector.md"],
+    "must_contain_keywords": ["precision", "latency", "MNB"],
+    "should_have_disclaimer": false
+  },
+  {
+    "id": "tc-10",
+    "category": "out_of_vault",
+    "query": "What do my notes say about quantum computing and Shor's algorithm?",
+    "expected_route": "KNOWLEDGE_BASE_QUERY",
+    "expected_sources": [],
+    "must_contain_keywords": ["couldn't find enough information"],
+    "should_have_disclaimer": true
+  },
+  {
+    "id": "tc-11",
+    "category": "out_of_vault",
+    "query": "What is the capital of France according to my vault notes?",
+    "expected_route": "KNOWLEDGE_BASE_QUERY",
+    "expected_sources": [],
+    "must_contain_keywords": ["couldn't find enough information"],
+    "should_have_disclaimer": true
+  },
+  {
+    "id": "tc-12",
+    "category": "out_of_vault",
+    "query": "Explain blockchain proof-of-work consensus from my notes.",
+    "expected_route": "KNOWLEDGE_BASE_QUERY",
+    "expected_sources": [],
+    "must_contain_keywords": ["couldn't find enough information"],
+    "should_have_disclaimer": true
+  },
+  {
+    "id": "tc-13",
+    "category": "general_query",
+    "query": "What is 25 * 4?",
+    "expected_route": "GENERAL_QUERY",
+    "expected_sources": [],
+    "must_contain_keywords": ["100"],
+    "should_have_disclaimer": false
+  },
+  {
+    "id": "tc-14",
+    "category": "general_query",
+    "query": "Hello! Who are you?",
+    "expected_route": "GENERAL_QUERY",
+    "expected_sources": [],
+    "must_contain_keywords": ["ObsidianMind", "assistant"],
+    "should_have_disclaimer": false
+  },
+  {
+    "id": "tc-15",
+    "category": "general_query",
+    "query": "Write a python function to check if a string is a palindrome.",
+    "expected_route": "GENERAL_QUERY",
+    "expected_sources": [],
+    "must_contain_keywords": ["def", "return"],
+    "should_have_disclaimer": false
+  },
+  {
+    "id": "tc-16",
+    "category": "general_query",
+    "query": "Calculate 1500 / 25",
+    "expected_route": "GENERAL_QUERY",
+    "expected_sources": [],
+    "must_contain_keywords": ["60"],
+    "should_have_disclaimer": false
+  }
+]

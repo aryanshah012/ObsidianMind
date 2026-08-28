@@ -1,0 +1,338 @@
+{
+  "timestamp": "2026-08-28 16:28:53",
+  "total_test_cases": 16,
+  "metrics": {
+    "routing_accuracy_pct": 100.0,
+    "retrieval_hit_rate_pct": 100.0,
+    "grounding_compliance_pct": 81.25,
+    "average_latency_sec": 4.88
+  },
+  "category_breakdown": {
+    "direct_factual": {
+      "total": 3,
+      "routing_correct": 3,
+      "retrieval_hits": 3,
+      "grounding_correct": 3
+    },
+    "multi_document": {
+      "total": 2,
+      "routing_correct": 2,
+      "retrieval_hits": 2,
+      "grounding_correct": 2
+    },
+    "summarization": {
+      "total": 2,
+      "routing_correct": 2,
+      "retrieval_hits": 2,
+      "grounding_correct": 2
+    },
+    "comparison": {
+      "total": 2,
+      "routing_correct": 2,
+      "retrieval_hits": 2,
+      "grounding_correct": 2
+    },
+    "out_of_vault": {
+      "total": 3,
+      "routing_correct": 3,
+      "retrieval_hits": 3,
+      "grounding_correct": 0
+    },
+    "general_query": {
+      "total": 4,
+      "routing_correct": 4,
+      "retrieval_hits": 4,
+      "grounding_correct": 4
+    }
+  },
+  "results": [
+    {
+      "test_id": "tc-01",
+      "category": "direct_factual",
+      "query": "What is the self-attention formula mentioned in my LLM notes?",
+      "expected_route": "KNOWLEDGE_BASE_QUERY",
+      "actual_route": "KNOWLEDGE_BASE_QUERY",
+      "routing_pass": true,
+      "expected_sources": [
+        "AI/LLMs.md"
+      ],
+      "retrieved_sources": [
+        "AI/LLMs.md",
+        "AI/RAG.md",
+        "Papers/Transformers_and_Attention.pdf"
+      ],
+      "retrieval_pass": true,
+      "grounding_pass": true,
+      "latency_sec": 3.28,
+      "answer_preview": "- **Self-Attention Formula**: \n  $$\\text{Attention}(Q, K, V) = \\text{softmax}\\left(\\frac{QK^T}{\\sqrt{d_k}}\\right)V$$"
+    },
+    {
+      "test_id": "tc-02",
+      "category": "direct_factual",
+      "query": "What embedding model is used in the CineMatch movie recommendation project?",
+      "expected_route": "KNOWLEDGE_BASE_QUERY",
+      "actual_route": "KNOWLEDGE_BASE_QUERY",
+      "routing_pass": true,
+      "expected_sources": [
+        "Projects/Movie_Recommendation.md"
+      ],
+      "retrieved_sources": [
+        "Projects/Movie_Recommendation.md",
+        "AI/Embeddings.md"
+      ],
+      "retrieval_pass": true,
+      "grounding_pass": true,
+      "latency_sec": 3.07,
+      "answer_preview": "- **Embedding Model**: `sentence-transformers/all-MiniLM-L6-v2`"
+    },
+    {
+      "test_id": "tc-03",
+      "category": "direct_factual",
+      "query": "What are the results and evaluation metrics for the CineMatch project?",
+      "expected_route": "KNOWLEDGE_BASE_QUERY",
+      "actual_route": "KNOWLEDGE_BASE_QUERY",
+      "routing_pass": true,
+      "expected_sources": [
+        "Projects/Movie_Recommendation.md"
+      ],
+      "retrieved_sources": [
+        "Projects/Movie_Recommendation.md",
+        "AI/RAG.md"
+      ],
+      "retrieval_pass": true,
+      "grounding_pass": true,
+      "latency_sec": 2.86,
+      "answer_preview": "- **Dataset**: MovieLens 1M (1 million ratings across 6,000 users and 4,000 movies).\n- **RMSE**: 0.864\n- **Precision@10**: 0.812\n- **Recall@10**: 0.74..."
+    },
+    {
+      "test_id": "tc-04",
+      "category": "multi_document",
+      "query": "How are embeddings used in both the RAG pipeline and the Movie Recommendation project?",
+      "expected_route": "KNOWLEDGE_BASE_QUERY",
+      "actual_route": "KNOWLEDGE_BASE_QUERY",
+      "routing_pass": true,
+      "expected_sources": [
+        "Projects/Movie_Recommendation.md",
+        "AI/RAG.md"
+      ],
+      "retrieved_sources": [
+        "Projects/Movie_Recommendation.md",
+        "AI/Embeddings.md"
+      ],
+      "retrieval_pass": true,
+      "grounding_pass": true,
+      "latency_sec": 3.46,
+      "answer_preview": "- **Role in RAG**: Embeddings serve as the bridge between raw textual notes in an Obsidian vault and dense vector indexing in Vector_Databases, enabli..."
+    },
+    {
+      "test_id": "tc-05",
+      "category": "multi_document",
+      "query": "How do LLMs, RAG, and AI Agents connect together according to my notes?",
+      "expected_route": "KNOWLEDGE_BASE_QUERY",
+      "actual_route": "KNOWLEDGE_BASE_QUERY",
+      "routing_pass": true,
+      "expected_sources": [
+        "AI/LLMs.md",
+        "AI/RAG.md",
+        "AI/Agents.md"
+      ],
+      "retrieved_sources": [
+        "AI/RAG.md",
+        "AI/LLMs.md",
+        "AI/Agents.md"
+      ],
+      "retrieval_pass": true,
+      "grounding_pass": true,
+      "latency_sec": 3.52,
+      "answer_preview": "- **Foundation (LLMs)**: Large Language Models serve as the core intelligence and neural foundation, utilizing the Transformer architecture and self-s..."
+    },
+    {
+      "test_id": "tc-06",
+      "category": "summarization",
+      "query": "Summarize my notes on Retrieval-Augmented Generation.",
+      "expected_route": "KNOWLEDGE_BASE_QUERY",
+      "actual_route": "KNOWLEDGE_BASE_QUERY",
+      "routing_pass": true,
+      "expected_sources": [
+        "AI/RAG.md"
+      ],
+      "retrieved_sources": [
+        "AI/RAG.md",
+        "AI/LLMs.md"
+      ],
+      "retrieval_pass": true,
+      "grounding_pass": true,
+      "latency_sec": 4.05,
+      "answer_preview": "- **Definition**: An AI framework combining external information retrieval with neural text generation to ground LLM answers in factual source data (L..."
+    },
+    {
+      "test_id": "tc-07",
+      "category": "summarization",
+      "query": "Summarize the Real-Time SMS & Email Spam Detector project notes.",
+      "expected_route": "KNOWLEDGE_BASE_QUERY",
+      "actual_route": "KNOWLEDGE_BASE_QUERY",
+      "routing_pass": true,
+      "expected_sources": [
+        "Projects/Spam_Detector.md"
+      ],
+      "retrieved_sources": [
+        "AI/Embeddings.md",
+        "AI/LLMs.md",
+        "Projects/Spam_Detector.md",
+        "AI/RAG.md"
+      ],
+      "retrieval_pass": true,
+      "grounding_pass": true,
+      "latency_sec": 2.93,
+      "answer_preview": "- **Overview**: An end-to-end NLP classification pipeline.\n- **Purpose**: Designed to filter phishing and promotional spam messages in real-time."
+    },
+    {
+      "test_id": "tc-08",
+      "category": "comparison",
+      "query": "Compare RAG vs fine-tuning according to my notes.",
+      "expected_route": "KNOWLEDGE_BASE_QUERY",
+      "actual_route": "KNOWLEDGE_BASE_QUERY",
+      "routing_pass": true,
+      "expected_sources": [
+        "AI/RAG.md"
+      ],
+      "retrieved_sources": [
+        "AI/LangGraph.md",
+        "AI/RAG.md"
+      ],
+      "retrieval_pass": true,
+      "grounding_pass": true,
+      "latency_sec": 2.93,
+      "answer_preview": "- **Knowledge Source**: RAG uses a dynamic external data store, while fine-tuning uses static internal model weights.\n- **Update Latency**: RAG offers..."
+    },
+    {
+      "test_id": "tc-09",
+      "category": "comparison",
+      "query": "Compare Multinomial Naive Bayes and DistilBERT in my spam detector project.",
+      "expected_route": "KNOWLEDGE_BASE_QUERY",
+      "actual_route": "KNOWLEDGE_BASE_QUERY",
+      "routing_pass": true,
+      "expected_sources": [
+        "Projects/Spam_Detector.md"
+      ],
+      "retrieved_sources": [
+        "AI/RAG.md",
+        "Projects/Spam_Detector.md"
+      ],
+      "retrieval_pass": true,
+      "grounding_pass": true,
+      "latency_sec": 11.98,
+      "answer_preview": "Based on your spam detector project, here is a comparison between **Multinomial Naive Bayes (MNB)** and **DistilBERT**:\n\n*   **Accuracy**: **DistilBER..."
+    },
+    {
+      "test_id": "tc-10",
+      "category": "out_of_vault",
+      "query": "What do my notes say about quantum computing and Shor's algorithm?",
+      "expected_route": "KNOWLEDGE_BASE_QUERY",
+      "actual_route": "KNOWLEDGE_BASE_QUERY",
+      "routing_pass": true,
+      "expected_sources": [],
+      "retrieved_sources": [
+        "AI/LangGraph.md",
+        "Daily/2026-08-25.md",
+        "AI/Agents.md"
+      ],
+      "retrieval_pass": true,
+      "grounding_pass": false,
+      "latency_sec": 18.64,
+      "answer_preview": "Your current notes do not contain any information regarding quantum computing or Shor's algorithm. \n\nBased on general knowledge, here is a comprehensi..."
+    },
+    {
+      "test_id": "tc-11",
+      "category": "out_of_vault",
+      "query": "What is the capital of France according to my vault notes?",
+      "expected_route": "KNOWLEDGE_BASE_QUERY",
+      "actual_route": "KNOWLEDGE_BASE_QUERY",
+      "routing_pass": true,
+      "expected_sources": [],
+      "retrieved_sources": [
+        "AI/LLMs.md",
+        "AI/RAG.md",
+        "Daily/2026-08-25.md",
+        "Papers/Transformers_and_Attention.pdf"
+      ],
+      "retrieval_pass": true,
+      "grounding_pass": false,
+      "latency_sec": 11.07,
+      "answer_preview": "- **Capital of France**: Paris (Not mentioned in your vault notes; provided from general knowledge)"
+    },
+    {
+      "test_id": "tc-12",
+      "category": "out_of_vault",
+      "query": "Explain blockchain proof-of-work consensus from my notes.",
+      "expected_route": "KNOWLEDGE_BASE_QUERY",
+      "actual_route": "KNOWLEDGE_BASE_QUERY",
+      "routing_pass": true,
+      "expected_sources": [],
+      "retrieved_sources": [
+        "AI/LangGraph.md",
+        "AI/Agents.md"
+      ],
+      "retrieval_pass": true,
+      "grounding_pass": false,
+      "latency_sec": 4.52,
+      "answer_preview": "Based on your notes, there is no mention of blockchain proof-of-work consensus (the provided vault context focuses on LangGraph and AI Agents). \n\nHowe..."
+    },
+    {
+      "test_id": "tc-13",
+      "category": "general_query",
+      "query": "What is 25 * 4?",
+      "expected_route": "GENERAL_QUERY",
+      "actual_route": "GENERAL_QUERY",
+      "routing_pass": true,
+      "expected_sources": [],
+      "retrieved_sources": [],
+      "retrieval_pass": true,
+      "grounding_pass": true,
+      "latency_sec": 1.24,
+      "answer_preview": "100"
+    },
+    {
+      "test_id": "tc-14",
+      "category": "general_query",
+      "query": "Hello! Who are you?",
+      "expected_route": "GENERAL_QUERY",
+      "actual_route": "GENERAL_QUERY",
+      "routing_pass": true,
+      "expected_sources": [],
+      "retrieved_sources": [],
+      "retrieval_pass": true,
+      "grounding_pass": true,
+      "latency_sec": 1.35,
+      "answer_preview": "- **Identity**: I am ObsidianMind, a helpful and highly knowledgeable AI Assistant designed to provide accurate, direct, and technical information."
+    },
+    {
+      "test_id": "tc-15",
+      "category": "general_query",
+      "query": "Write a python function to check if a string is a palindrome.",
+      "expected_route": "GENERAL_QUERY",
+      "actual_route": "GENERAL_QUERY",
+      "routing_pass": true,
+      "expected_sources": [],
+      "retrieved_sources": [],
+      "retrieval_pass": true,
+      "grounding_pass": true,
+      "latency_sec": 1.7,
+      "answer_preview": "```python\ndef is_palindrome(s: str) -> bool:\n    cleaned = \"\".join(ch.lower() for ch in s if ch.isalnum())\n    return cleaned == cleaned[::-1]\n```\n\n- ..."
+    },
+    {
+      "test_id": "tc-16",
+      "category": "general_query",
+      "query": "Calculate 1500 / 25",
+      "expected_route": "GENERAL_QUERY",
+      "actual_route": "GENERAL_QUERY",
+      "routing_pass": true,
+      "expected_sources": [],
+      "retrieved_sources": [],
+      "retrieval_pass": true,
+      "grounding_pass": true,
+      "latency_sec": 1.47,
+      "answer_preview": "60"
+    }
+  ]
+}
