@@ -17,7 +17,7 @@ export default function ApiKeyModal({ isOpen, onClose, currentProvider, onSaveKe
     setStatusMsg(null);
 
     try {
-      const res = await fetch('http://localhost:8000/api/settings/api-key', {
+      const res = await fetch('/api/settings/api-key', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ provider, api_key: apiKey.trim() }),
