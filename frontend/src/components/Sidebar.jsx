@@ -233,6 +233,24 @@ export default function Sidebar({
             <span>{docCount} docs</span>
           </div>
         </div>
+
+        {/* Creator Attribution */}
+        <a
+          href="https://github.com/aryanshah012"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 py-1.5 group transition-all"
+        >
+          <img
+            src="https://github.com/aryanshah012.png"
+            alt="Aryan Shah"
+            className="w-4 h-4 rounded-full border border-border/60 group-hover:border-sage/60 transition-all object-cover"
+            onError={(e) => { e.target.style.display = 'none'; }}
+          />
+          <span className="text-[9.5px] text-charcoal-subtle font-mono tracking-wide group-hover:text-sage transition-colors">
+            Built by <span className="font-semibold text-charcoal-muted group-hover:text-sage">Aryan Shah</span>
+          </span>
+        </a>
       </div>
     </aside>
   );

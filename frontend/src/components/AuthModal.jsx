@@ -301,6 +301,26 @@ export default function AuthModal({ onLoginSuccess }) {
             </button>
           </div>
         </div>
+
+        {/* Creator Attribution */}
+        <div className="pt-3 border-t border-border/60">
+          <a
+            href="https://github.com/aryanshah012"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2.5 group transition-all"
+          >
+            <img
+              src="https://github.com/aryanshah012.png"
+              alt="Aryan Shah"
+              className="w-6 h-6 rounded-full border border-border/80 shadow-sm group-hover:border-sage/60 transition-all object-cover"
+              onError={(e) => { e.target.style.display = 'none'; }}
+            />
+            <span className="text-[10.5px] text-charcoal-muted font-mono tracking-wide group-hover:text-sage transition-colors">
+              Built by <span className="font-semibold text-charcoal group-hover:text-sage">Aryan Shah</span>
+            </span>
+          </a>
+        </div>
       </div>
     </div>
   );
