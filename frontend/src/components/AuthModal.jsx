@@ -311,10 +311,9 @@ export default function AuthModal({ onLoginSuccess }) {
             className="flex items-center justify-center gap-2.5 group transition-all"
           >
             <img
-              src="https://github.com/aryanshah012.png"
+              src="/aryan-shah.jpg"
               alt="Aryan Shah"
-              className="w-6 h-6 rounded-full border border-border/80 shadow-sm group-hover:border-sage/60 transition-all object-cover"
-              onError={(e) => { e.target.style.display = 'none'; }}
+              className="w-7 h-7 rounded-full border border-border/80 shadow-sm group-hover:border-sage/60 transition-all object-cover"
             />
             <span className="text-[10.5px] text-charcoal-muted font-mono tracking-wide group-hover:text-sage transition-colors">
               Built by <span className="font-semibold text-charcoal group-hover:text-sage">Aryan Shah</span>
