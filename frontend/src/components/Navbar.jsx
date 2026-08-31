@@ -1,5 +1,5 @@
 import React from 'react';
-import { Upload, Trash2, Menu, X, Sparkles, Loader2 } from 'lucide-react';
+import { Upload, Trash2, Menu, X, Sparkles, Loader2, LogOut, User } from 'lucide-react';
 
 export default function Navbar({
   activeTab = 'chat',
@@ -10,6 +10,8 @@ export default function Navbar({
   onLoadSample,
   isIndexing,
   activeVaultName = 'Primary Vault',
+  user,
+  onLogout,
 }) {
   const getTabTitle = () => {
     switch (activeTab) {
@@ -20,6 +22,16 @@ export default function Navbar({
       default:
         return 'Ask knowledge base';
     }
+  };
+
+  const getInitials = () => {
+    if (!user) return 'U';
+    const name = user.full_name || user.username || 'User';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
   };
 
   return (
@@ -48,7 +60,7 @@ export default function Navbar({
         </div>
       </div>
 
-      {/* Right: Upload Vault & 1-Click Demo Actions */}
+      {/* Right: Upload Vault, 1-Click Demo, & User Profile / Logout */}
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
         {/* 1-Click Sample Vault Demo */}
         {onLoadSample && (
@@ -56,7 +68,7 @@ export default function Navbar({
             onClick={onLoadSample}
             disabled={isIndexing}
             className="hidden md:flex h-9 sm:h-10 px-3 sm:px-3.5 rounded-lg bg-surface hover:bg-surface-hover text-charcoal font-sans text-xs font-semibold items-center gap-2 border border-border transition-all shadow-subtle active:scale-[0.98] disabled:opacity-50"
-            title="Load sample Obsidian notes into this workspace"
+            title="Load sample Obsidian notes into your workspace"
           >
             {isIndexing ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin text-sage" />
@@ -84,6 +96,34 @@ export default function Navbar({
           >
             <Trash2 className="w-4 h-4" />
           </button>
+        )}
+
+        {/* User Profile Pill & Sign Out Button */}
+        {user && (
+          <div className="flex items-center gap-1.5 pl-2 border-l border-border">
+            <div
+              className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-surface border border-border text-xs font-sans text-charcoal shadow-subtle"
+              title={`Logged in as ${user.email || user.username}`}
+            >
+              <div className="w-6 h-6 rounded-md bg-sage text-white font-mono text-[10.5px] font-bold flex items-center justify-center">
+                {getInitials()}
+              </div>
+              <span className="font-semibold hidden sm:inline max-w-[120px] truncate">
+                {user.full_name || user.username}
+              </span>
+            </div>
+
+            {onLogout && (
+              <button
+                onClick={onLogout}
+                className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg bg-surface hover:bg-rose-500/10 text-charcoal-muted hover:text-rose-600 flex items-center justify-center border border-border hover:border-rose-500/30 transition-all shadow-subtle active:scale-[0.98] shrink-0"
+                title="Sign Out"
+                aria-label="Sign Out"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         )}
       </div>
     </header>

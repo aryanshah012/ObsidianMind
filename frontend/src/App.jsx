@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import PromptSuggestions from './components/PromptSuggestions';
@@ -8,18 +8,30 @@ import DashboardView from './components/DashboardView';
 import DocumentsView from './components/DocumentsView';
 import ApiKeyModal from './components/ApiKeyModal';
 import UploadModal from './components/UploadModal';
+import AuthModal from './components/AuthModal';
 import { Loader2 } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '';
 
 export default function App() {
+  // Authentication State
+  const [token, setToken] = useState(() => localStorage.getItem('obsidian_token') || '');
+  const [user, setUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('obsidian_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
   const [activeTab, setActiveTab] = useState('chat');
   const [messages, setMessages] = useState([]);
   const [vaults, setVaults] = useState([
     {
       id: 'default',
       name: 'Primary Vault',
-      description: 'Default personal knowledge vault',
+      description: 'Personal knowledge vault',
       icon: 'Folder',
       color: '#2E7D6A',
       is_default: true,
@@ -31,9 +43,9 @@ export default function App() {
     status: 'Ready',
     vault_id: 'default',
     vault_name: 'Primary Vault',
-    total_notes: 11,
-    total_chunks: 44,
-    total_size_mb: '3.2 MB',
+    total_notes: 0,
+    total_chunks: 0,
+    total_size_mb: '0.0 MB',
     last_indexed_at: 'Live',
   });
   const [notes, setNotes] = useState([]);
@@ -59,50 +71,115 @@ export default function App() {
     setTimeout(() => setToast(null), 3500);
   };
 
-  // Fetch all vaults, stats, and notes from API
-  const fetchAllData = async (targetVaultId) => {
-    const currentVault = targetVaultId || activeVaultId;
-    try {
-      // 1. Fetch vaults list
-      const vaultsRes = await fetch(`${API_BASE}/api/vaults`);
-      if (vaultsRes.ok) {
-        const vaultsData = await vaultsRes.json();
-        if (vaultsData.vaults && vaultsData.vaults.length > 0) {
-          setVaults(vaultsData.vaults);
-          const activeV = vaultsData.vaults.find((v) => v.is_active);
-          if (activeV && !targetVaultId) {
-            setActiveVaultId(activeV.id);
-          }
-        }
+  // Helper for authenticated API calls
+  const apiFetch = useCallback(
+    async (endpoint, options = {}) => {
+      const headers = { ...options.headers };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
 
-      // 2. Fetch stats for workspace
-      const statsRes = await fetch(`${API_BASE}/api/stats?vault_id=${currentVault}`);
-      if (statsRes.ok) {
-        const statsData = await statsRes.json();
-        setStats(statsData);
+      const res = await fetch(`${API_BASE}${endpoint}`, {
+        ...options,
+        headers,
+      });
+
+      if (res.status === 401) {
+        // Token expired or invalid
+        handleLogout(false);
+        throw new Error('Session expired. Please sign in again.');
       }
 
-      // 3. Fetch notes for workspace
-      const notesRes = await fetch(`${API_BASE}/api/notes?vault_id=${currentVault}`);
-      if (notesRes.ok) {
-        const notesData = await notesRes.json();
-        setNotes(notesData.notes || []);
+      return res;
+    },
+    [token]
+  );
+
+  // Logout handler
+  const handleLogout = async (callApi = true) => {
+    if (callApi && token) {
+      try {
+        await fetch(`${API_BASE}/api/auth/logout`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } catch (e) {
+        // Ignore network errors on logout
       }
-    } catch (err) {
-      console.warn('Backend API connection offline:', err);
     }
+
+    localStorage.removeItem('obsidian_token');
+    localStorage.removeItem('obsidian_user');
+    setToken('');
+    setUser(null);
+    setMessages([]);
+    setNotes([]);
+    setSelectedDocFilter([]);
+    showToast('Signed out of personal workspace.', 'success');
   };
 
+  // Login handler
+  const handleLoginSuccess = (newToken, newUser) => {
+    localStorage.setItem('obsidian_token', newToken);
+    localStorage.setItem('obsidian_user', JSON.stringify(newUser));
+    setToken(newToken);
+    setUser(newUser);
+    setMessages([]);
+    setSelectedDocFilter([]);
+    showToast(`Signed in as ${newUser.full_name || newUser.username}!`);
+  };
+
+  // Fetch all user-isolated vaults, stats, and notes from API
+  const fetchAllData = useCallback(
+    async (targetVaultId) => {
+      if (!token) return;
+      const currentVault = targetVaultId || activeVaultId;
+
+      try {
+        // 1. Fetch user's vaults list
+        const vaultsRes = await apiFetch('/api/vaults');
+        if (vaultsRes.ok) {
+          const vaultsData = await vaultsRes.json();
+          if (vaultsData.vaults && vaultsData.vaults.length > 0) {
+            setVaults(vaultsData.vaults);
+            const activeV = vaultsData.vaults.find((v) => v.is_active);
+            if (activeV && !targetVaultId) {
+              setActiveVaultId(activeV.id);
+            }
+          }
+        }
+
+        // 2. Fetch stats for user's workspace
+        const statsRes = await apiFetch(`/api/stats?vault_id=${currentVault}`);
+        if (statsRes.ok) {
+          const statsData = await statsRes.json();
+          setStats(statsData);
+        }
+
+        // 3. Fetch user's notes in this workspace
+        const notesRes = await apiFetch(`/api/notes?vault_id=${currentVault}`);
+        if (notesRes.ok) {
+          const notesData = await notesRes.json();
+          setNotes(notesData.notes || []);
+        }
+      } catch (err) {
+        console.warn('Backend sync warning:', err);
+      }
+    },
+    [token, activeVaultId, apiFetch]
+  );
+
   useEffect(() => {
-    fetchAllData();
-  }, []);
+    if (token) {
+      fetchAllData();
+    }
+  }, [token, fetchAllData]);
 
   // Switch active vault workspace
   const handleSelectVault = async (vaultId) => {
     if (vaultId === activeVaultId) return;
     try {
-      const res = await fetch(`${API_BASE}/api/vaults/${vaultId}/select`, {
+      const res = await apiFetch(`/api/vaults/${vaultId}/select`, {
         method: 'POST',
       });
       if (res.ok) {
@@ -110,16 +187,16 @@ export default function App() {
         setActiveVaultId(vaultId);
         if (data.vaults) setVaults(data.vaults);
         if (data.stats) setStats(data.stats);
-        
+
         // Refresh notes for this vault
-        const notesRes = await fetch(`${API_BASE}/api/notes?vault_id=${vaultId}`);
+        const notesRes = await apiFetch(`/api/notes?vault_id=${vaultId}`);
         if (notesRes.ok) {
           const notesData = await notesRes.json();
           setNotes(notesData.notes || []);
         }
 
         const selectedVaultObj = vaults.find((v) => v.id === vaultId);
-        showToast(`Switched workspace to "${selectedVaultObj?.name || vaultId}"`);
+        showToast(`Switched to "${selectedVaultObj?.name || vaultId}"`);
         setSelectedDocFilter([]);
       }
     } catch (err) {
@@ -129,7 +206,7 @@ export default function App() {
 
   // Create a new vault workspace
   const handleCreateVault = async (vaultData) => {
-    const res = await fetch(`${API_BASE}/api/vaults`, {
+    const res = await apiFetch('/api/vaults', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(vaultData),
@@ -149,7 +226,7 @@ export default function App() {
   // Delete a workspace
   const handleDeleteVault = async (vaultId) => {
     try {
-      const res = await fetch(`${API_BASE}/api/vaults/${vaultId}`, {
+      const res = await apiFetch(`/api/vaults/${vaultId}`, {
         method: 'DELETE',
       });
       const data = await res.json();
@@ -212,7 +289,7 @@ export default function App() {
         content: m.content,
       }));
 
-      const res = await fetch(`${API_BASE}/api/chat`, {
+      const res = await apiFetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -249,7 +326,7 @@ export default function App() {
     } catch (err) {
       const errorMessage = {
         role: 'assistant',
-        content: `Error: ${err.message}. Please verify the server connection.`,
+        content: `Error: ${err.message}.`,
         route: 'GENERAL_QUERY',
         latency_sec: 0.0,
       };
@@ -259,18 +336,18 @@ export default function App() {
     }
   };
 
-  // Load sample vault into active workspace
+  // Load sample vault into user's active private workspace
   const handleLoadSample = async () => {
     setIsIndexing(true);
     try {
-      const res = await fetch(`${API_BASE}/api/sample-vault?vault_id=${activeVaultId}`, {
+      const res = await apiFetch(`/api/sample-vault?vault_id=${activeVaultId}`, {
         method: 'POST',
       });
       const data = await res.json();
 
       if (!res.ok) throw new Error(data.detail || 'Failed to load sample vault');
 
-      showToast(`Sample vault loaded! Indexed ${data.total_notes} documents (${data.total_chunks} chunks).`);
+      showToast(`Sample vault loaded! Indexed ${data.total_notes} documents into your workspace.`);
       fetchAllData(activeVaultId);
     } catch (err) {
       showToast(`Error: ${err.message}`, 'error');
@@ -279,7 +356,7 @@ export default function App() {
     }
   };
 
-  // Batch upload multiple files into active workspace
+  // Batch upload multiple files into user's private workspace
   const handleUploadFiles = async (filesToUpload) => {
     if (!filesToUpload || filesToUpload.length === 0) return;
     setIsIndexing(true);
@@ -290,7 +367,7 @@ export default function App() {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/api/upload?vault_id=${activeVaultId}`, {
+      const res = await apiFetch(`/api/upload?vault_id=${activeVaultId}`, {
         method: 'POST',
         body: formData,
       });
@@ -308,7 +385,7 @@ export default function App() {
     }
   };
 
-  // Reset database for active workspace
+  // Reset database for user's active workspace
   const handleResetVault = async () => {
     const activeVaultObj = vaults.find((v) => v.id === activeVaultId);
     const vaultName = activeVaultObj?.name || 'this workspace';
@@ -316,7 +393,7 @@ export default function App() {
       return;
     }
     try {
-      const res = await fetch(`${API_BASE}/api/reset?vault_id=${activeVaultId}`, { method: 'POST' });
+      const res = await apiFetch(`/api/reset?vault_id=${activeVaultId}`, { method: 'POST' });
       if (res.ok) {
         showToast(`Vector store for "${vaultName}" successfully cleared.`);
         setMessages([]);
@@ -327,6 +404,11 @@ export default function App() {
       showToast(`Reset failed: ${err.message}`, 'error');
     }
   };
+
+  // If not authenticated, present the authentication screen
+  if (!token || !user) {
+    return <AuthModal onLoginSuccess={handleLoginSuccess} />;
+  }
 
   return (
     <div className="fixed inset-0 h-full h-[100dvh] w-full overflow-hidden bg-canvas text-charcoal flex font-sans select-none">
@@ -364,7 +446,7 @@ export default function App() {
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
         onUploadFiles={handleUploadFiles}
-        isUploading={isIndexing}
+        isIndexing={isIndexing}
         activeVaultName={vaults.find((v) => v.id === activeVaultId)?.name || 'Primary Vault'}
       />
 
@@ -392,6 +474,8 @@ export default function App() {
         onSelectVault={handleSelectVault}
         onCreateVault={handleCreateVault}
         onDeleteVault={handleDeleteVault}
+        user={user}
+        onLogout={handleLogout}
       />
 
       {/* Right Column: Navbar (Top Fixed) + Center Scrollable Content Area */}
@@ -408,6 +492,8 @@ export default function App() {
           isIndexing={isIndexing}
           onOpenSettings={() => setIsApiKeyModalOpen(true)}
           activeVaultName={vaults.find((v) => v.id === activeVaultId)?.name || 'Primary Vault'}
+          user={user}
+          onLogout={handleLogout}
         />
 
         {/* Center: Scrollable Content Body (ONLY this area scrolls) */}

@@ -1,6 +1,7 @@
 """
 Vault & Workspace Manager for ObsidianMind.
-Handles creation, listing, switching, and deletion of isolated knowledge workspaces.
+Handles creation, listing, switching, and deletion of isolated knowledge workspaces,
+with strict multi-user partitioning.
 """
 
 import json
@@ -24,51 +25,66 @@ class VaultMetadata(BaseModel):
     collection_name: str
 
 
-DEFAULT_VAULTS: List[Dict[str, Any]] = [
-    {
-        "id": "default",
-        "name": "Primary Vault",
-        "description": "Default personal knowledge vault with general notes and study guides",
-        "icon": "Folder",
-        "color": "#2E7D6A",
-        "is_default": True,
-        "collection_name": "obsidian_vault",
-    },
-    {
-        "id": "academics",
-        "name": "College & Academics",
-        "description": "Courses, identity documents, grade records, and syllabus notes",
-        "icon": "GraduationCap",
-        "color": "#3B82F6",
-        "is_default": False,
-        "collection_name": "obsidian_vault_academics",
-    },
-    {
-        "id": "ai-research",
-        "name": "AI & Research",
-        "description": "Machine learning papers, Transformer architectures, and RAG guides",
-        "icon": "Cpu",
-        "color": "#8B5CF6",
-        "is_default": False,
-        "collection_name": "obsidian_vault_research",
-    },
-]
+def get_default_vaults_for_user(user_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Return isolated default workspace templates for a user."""
+    prefix = f"user_{re.sub(r'[^a-zA-Z0-9_]', '_', user_id)}_" if user_id else "obsidian_vault_"
+    return [
+        {
+            "id": "default",
+            "name": "Primary Vault",
+            "description": "Personal knowledge vault with general notes, journals, and docs",
+            "icon": "Folder",
+            "color": "#2E7D6A",
+            "is_default": True,
+            "collection_name": f"{prefix}default" if user_id else "obsidian_vault",
+        },
+        {
+            "id": "academics",
+            "name": "College & Academics",
+            "description": "Courses, identity documents, grade records, and syllabus notes",
+            "icon": "GraduationCap",
+            "color": "#3B82F6",
+            "is_default": False,
+            "collection_name": f"{prefix}academics",
+        },
+        {
+            "id": "ai-research",
+            "name": "AI & Research",
+            "description": "Machine learning papers, Transformer architectures, and RAG guides",
+            "icon": "Cpu",
+            "color": "#8B5CF6",
+            "is_default": False,
+            "collection_name": f"{prefix}research",
+        },
+    ]
 
 
 class VaultManager:
-    """Manages workspace vaults and persists configuration in data/vaults.json."""
+    """Manages workspace vaults and persists configuration scoped per user."""
 
-    def __init__(self, storage_path: Optional[Path] = None):
-        self.storage_file = storage_path or (settings.DATA_DIR / "vaults.json")
+    def __init__(self, user_id: Optional[str] = None, storage_path: Optional[Path] = None):
+        self.user_id = user_id
+        if storage_path:
+            self.storage_file = storage_path
+        elif user_id:
+            self.storage_file = settings.USERS_DIR / user_id / "vaults.json"
+        else:
+            self.storage_file = settings.DATA_DIR / "vaults.json"
+
         self.active_vault_id: str = "default"
         self._load_vaults()
+
+    def _get_default_vaults(self) -> List[Dict[str, Any]]:
+        return get_default_vaults_for_user(self.user_id)
 
     def _load_vaults(self) -> None:
         """Load vault list from disk, initializing defaults if file does not exist."""
         self.storage_file.parent.mkdir(parents=True, exist_ok=True)
+        default_vaults = self._get_default_vaults()
+
         if not self.storage_file.exists():
-            self._save_vaults(DEFAULT_VAULTS, active_id="default")
-            self.vaults = [VaultMetadata(**v) for v in DEFAULT_VAULTS]
+            self._save_vaults(default_vaults, active_id="default")
+            self.vaults = [VaultMetadata(**v) for v in default_vaults]
             self.active_vault_id = "default"
             return
 
@@ -76,23 +92,24 @@ class VaultManager:
             data = json.loads(self.storage_file.read_text(encoding="utf-8"))
             vault_list = data.get("vaults", [])
             if not vault_list:
-                vault_list = DEFAULT_VAULTS
+                vault_list = default_vaults
             self.vaults = [VaultMetadata(**v) for v in vault_list]
             self.active_vault_id = data.get("active_vault_id", "default")
-            
+
             # Ensure active_vault_id exists in vaults
             if not any(v.id == self.active_vault_id for v in self.vaults):
                 self.active_vault_id = self.vaults[0].id if self.vaults else "default"
         except Exception as e:
-            print(f"⚠️ Notice: Could not load vaults.json ({e}). Initializing defaults.")
-            self.vaults = [VaultMetadata(**v) for v in DEFAULT_VAULTS]
+            print(f"⚠️ Notice: Could not load vaults ({e}). Initializing defaults.")
+            self.vaults = [VaultMetadata(**v) for v in default_vaults]
             self.active_vault_id = "default"
-            self._save_vaults(DEFAULT_VAULTS, active_id="default")
+            self._save_vaults(default_vaults, active_id="default")
 
     def _save_vaults(self, vault_data: List[Dict[str, Any]], active_id: str) -> None:
         """Save vault list and active vault id to JSON file."""
         self.storage_file.parent.mkdir(parents=True, exist_ok=True)
         payload = {
+            "user_id": self.user_id,
             "active_vault_id": active_id,
             "updated_at": time.time(),
             "vaults": vault_data,
@@ -153,7 +170,12 @@ class VaultManager:
             slug = f"{base_slug}-{counter}"
             counter += 1
 
-        collection_name = f"obsidian_vault_{slug.replace('-', '_')}"
+        clean_slug = slug.replace("-", "_")
+        if self.user_id:
+            clean_uid = re.sub(r"[^a-zA-Z0-9_]", "_", self.user_id)
+            collection_name = f"user_{clean_uid}_{clean_slug}"[:63]
+        else:
+            collection_name = f"obsidian_vault_{clean_slug}"[:63]
 
         new_vault = VaultMetadata(
             id=slug,

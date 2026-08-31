@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   MessageSquare,
   LayoutDashboard,
@@ -6,7 +6,9 @@ import {
   Search,
   Settings,
   Circle,
-  FolderTree,
+  User,
+  LogOut,
+  Shield,
 } from 'lucide-react';
 import VaultSwitcher from './VaultSwitcher';
 
@@ -23,17 +25,29 @@ export default function Sidebar({
   onSelectVault,
   onCreateVault,
   onDeleteVault,
+  user,
+  onLogout,
 }) {
   const [searchQuery, setSearchQuery] = useState('');
 
   const docCount = stats?.total_notes || notes.length || 0;
-  const sizeMb = stats?.total_size_mb || '3.2 MB';
+  const sizeMb = stats?.total_size_mb || '0.0 MB';
 
   const handleSearchSubmit = (e) => {
     if (e.key === 'Enter' && searchQuery.trim()) {
       if (onSearchNotes) onSearchNotes(searchQuery.trim());
       onSelectTab('documents');
     }
+  };
+
+  const getInitials = () => {
+    if (!user) return 'U';
+    const name = user.full_name || user.username || 'User';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
   };
 
   return (
@@ -90,7 +104,7 @@ export default function Sidebar({
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-charcoal-subtle" />
             <input
               type="text"
-              placeholder="Search vault notes..."
+              placeholder="Search personal notes..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={handleSearchSubmit}
@@ -169,22 +183,52 @@ export default function Sidebar({
         </div>
       </div>
 
-      {/* Bottom Knowledge Base Status Footprint */}
-      <div className="p-3.5 border-t border-border shrink-0 bg-surface/50">
-        <div className="p-3 rounded-lg bg-surface border border-border space-y-1.5 shadow-subtle">
+      {/* Bottom User Profile & Knowledge Base Status */}
+      <div className="p-3.5 border-t border-border shrink-0 bg-surface/50 space-y-2.5">
+        {/* User Account Info Pill */}
+        {user && (
+          <div className="p-2.5 rounded-lg bg-surface border border-border flex items-center justify-between shadow-subtle">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-7 h-7 rounded-md bg-sage text-white font-mono text-xs font-bold flex items-center justify-center shrink-0">
+                {getInitials()}
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-bold text-charcoal truncate font-sans">
+                  {user.full_name || user.username}
+                </div>
+                <div className="text-[10px] text-charcoal-muted font-mono truncate">
+                  {user.email}
+                </div>
+              </div>
+            </div>
+            {onLogout && (
+              <button
+                onClick={onLogout}
+                className="p-1.5 rounded-md text-charcoal-muted hover:text-rose-600 hover:bg-rose-500/10 transition-colors"
+                title="Sign Out"
+                aria-label="Sign Out"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Status Footprint */}
+        <div className="p-2.5 rounded-lg bg-surface/80 border border-border/80 space-y-1.5 shadow-subtle">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Circle className="w-2.5 h-2.5 fill-sage text-sage animate-pulse" />
-              <span className="text-xs font-bold text-charcoal tracking-tight font-mono">
-                {stats?.status === 'Ready' ? 'INDEX READY' : 'ONLINE'}
+            <div className="flex items-center gap-1.5">
+              <Circle className="w-2 h-2 fill-sage text-sage animate-pulse" />
+              <span className="text-[11px] font-bold text-charcoal tracking-tight font-mono">
+                {stats?.status === 'Ready' ? 'PERSONAL VAULT READY' : 'ONLINE'}
               </span>
             </div>
-            <span className="font-mono text-[10.5px] text-charcoal-muted font-medium">
+            <span className="font-mono text-[10px] text-charcoal-muted font-medium">
               {sizeMb}
             </span>
           </div>
 
-          <div className="flex items-center justify-between text-xs text-charcoal-muted font-mono pt-1 border-t border-border/70">
+          <div className="flex items-center justify-between text-[10.5px] text-charcoal-muted font-mono pt-1 border-t border-border/60">
             <span>{stats?.total_chunks || 0} chunks</span>
             <span>{docCount} docs</span>
           </div>

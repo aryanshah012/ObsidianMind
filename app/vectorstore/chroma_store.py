@@ -72,11 +72,23 @@ class ChromaVectorStore(BaseVectorStore):
 
     def _get_or_create_collection(self) -> None:
         """Create or retrieve collection with cosine distance space."""
-        self.collection = self.client.get_or_create_collection(
-            name=self.collection_name,
-            embedding_function=self.chroma_adapter,
-            metadata={"hnsw:space": "cosine"}
-        )
+        try:
+            self.collection = self.client.get_or_create_collection(
+                name=self.collection_name,
+                embedding_function=self.chroma_adapter,
+                metadata={"hnsw:space": "cosine"}
+            )
+        except Exception:
+            # Handle collection dimension mismatch by recreating collection
+            try:
+                self.client.delete_collection(self.collection_name)
+            except Exception:
+                pass
+            self.collection = self.client.create_collection(
+                name=self.collection_name,
+                embedding_function=self.chroma_adapter,
+                metadata={"hnsw:space": "cosine"}
+            )
 
     def _generate_chunk_id(self, doc: Document, fallback_idx: int) -> str:
         """Generate deterministic chunk identifier to prevent duplicate entries."""
@@ -122,11 +134,22 @@ class ChromaVectorStore(BaseVectorStore):
                         clean_meta[k] = str(v)
                 batch_metadatas.append(clean_meta)
 
-            self.collection.upsert(
-                ids=batch_ids,
-                documents=batch_texts,
-                metadatas=batch_metadatas,
-            )
+            try:
+                self.collection.upsert(
+                    ids=batch_ids,
+                    documents=batch_texts,
+                    metadatas=batch_metadatas,
+                )
+            except Exception as e:
+                if "dimension" in str(e).lower() or "expecting embedding" in str(e).lower():
+                    self.clear()
+                    self.collection.upsert(
+                        ids=batch_ids,
+                        documents=batch_texts,
+                        metadatas=batch_metadatas,
+                    )
+                else:
+                    raise
             all_ids.extend(batch_ids)
 
         return all_ids

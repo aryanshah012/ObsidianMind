@@ -26,10 +26,19 @@ class Settings(BaseSettings):
     # Base Paths
     BASE_DIR: Path = BASE_DIR
     DATA_DIR: Path = BASE_DIR / "data"
+    USERS_DIR: Path = BASE_DIR / "data" / "users"
     SAMPLE_VAULT_DIR: Path = BASE_DIR / "data" / "sample_vault"
     SAMPLE_VAULT_ZIP: Path = BASE_DIR / "data" / "sample_vault.zip"
     UPLOAD_DIR: Path = BASE_DIR / "data" / "uploads"
     EXTRACTED_DIR: Path = BASE_DIR / "data" / "extracted"
+
+    # Authentication & Security
+    JWT_SECRET_KEY: str = Field(
+        default="obsidian-mind-super-secret-production-key-2026-secure",
+        description="Secret key for JWT generation",
+    )
+    JWT_ALGORITHM: str = "HS256"
+    JWT_EXPIRE_DAYS: int = 7
 
     # LLM Settings
     LLM_PROVIDER: Literal["google", "openai", "groq", "ollama"] = Field(
@@ -83,6 +92,7 @@ class Settings(BaseSettings):
     def ensure_directories(self) -> None:
         """Create necessary working directories if they do not exist."""
         self.DATA_DIR.mkdir(parents=True, exist_ok=True)
+        self.USERS_DIR.mkdir(parents=True, exist_ok=True)
         self.SAMPLE_VAULT_DIR.mkdir(parents=True, exist_ok=True)
         self.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
         self.EXTRACTED_DIR.mkdir(parents=True, exist_ok=True)

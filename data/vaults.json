@@ -1,6 +1,7 @@
 {
-  "active_vault_id": "default",
-  "updated_at": 1787930541.5111182,
+  "user_id": null,
+  "active_vault_id": "academics",
+  "updated_at": 1788194031.567873,
   "vaults": [
     {
       "id": "default",

@@ -1,7 +1,8 @@
 """
 FastAPI Backend Server for ObsidianMind.
-Exposes REST endpoints for vault ingestion, multi-vault workspace management,
-1-click demo indexing, agentic chat with LangGraph, and diagnostics.
+Exposes REST endpoints for authentication, multi-vault workspace management,
+1-click demo indexing, agentic chat with LangGraph, and diagnostics with
+strict per-user data isolation.
 """
 
 import os
@@ -16,18 +17,26 @@ root_dir = Path(__file__).resolve().parent.parent.parent
 if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
-from fastapi import FastAPI, UploadFile, File, HTTPException, Body, Query
+from fastapi import FastAPI, UploadFile, File, HTTPException, Body, Query, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from app.config import settings
+from app.models.user import (
+    UserRegisterRequest,
+    UserLoginRequest,
+    UserResponse,
+    TokenResponse,
+)
+from app.services.auth_service import auth_service
 from app.services.rag_service import RAGService
 
 app = FastAPI(
     title="ObsidianMind API",
     version="1.0.0",
-    description="Backend REST API for ObsidianMind AI Knowledge Assistant with Multi-Vault Workspaces",
+    description="Backend REST API for ObsidianMind AI Knowledge Assistant with Multi-User & Multi-Vault Isolation",
 )
 
 # Enable CORS for Vite frontend development
@@ -39,11 +48,44 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Global RAG service instance
-rag_service: Optional[RAGService] = None
+# User-scoped RAG service cache
+user_rag_services: Dict[str, RAGService] = {}
+
+security = HTTPBearer(auto_error=False)
 
 
-def get_rag_service(
+async def get_current_user(
+    auth: Optional[HTTPAuthorizationCredentials] = Depends(security),
+) -> UserResponse:
+    """Validate Bearer JWT token and return authenticated user profile."""
+    if not auth or not auth.credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required. Please sign in.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    payload = auth_service.decode_access_token(auth.credentials)
+    if not payload or "sub" not in payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired session token. Please sign in again.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    user = auth_service.get_user_by_id(payload["sub"])
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User account not found.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    return user
+
+
+def get_rag_service_for_user(
+    user_id: str,
     provider: Optional[str] = None,
     model: Optional[str] = None,
     api_key: Optional[str] = None,
@@ -51,10 +93,11 @@ def get_rag_service(
     score_threshold: Optional[float] = None,
     vault_id: Optional[str] = None,
 ) -> RAGService:
-    global rag_service
-    # If api_key or specific provider is requested, initialize customized service
+    """Retrieve or initialize a user-isolated RAG service instance."""
+    # If custom API key or provider is specified, instantiate freshly
     if api_key or provider:
         return RAGService(
+            user_id=user_id,
             llm_provider=provider or settings.LLM_PROVIDER,
             llm_model=model or settings.LLM_MODEL,
             api_key=api_key,
@@ -63,9 +106,11 @@ def get_rag_service(
             vault_id=vault_id,
         )
 
-    if rag_service is None:
+    cached_service = user_rag_services.get(user_id)
+    if cached_service is None:
         try:
-            rag_service = RAGService(
+            cached_service = RAGService(
+                user_id=user_id,
                 llm_provider=provider or settings.LLM_PROVIDER,
                 llm_model=model or settings.LLM_MODEL,
                 api_key=api_key,
@@ -73,17 +118,19 @@ def get_rag_service(
                 score_threshold=score_threshold if score_threshold is not None else settings.RETRIEVER_SCORE_THRESHOLD,
                 vault_id=vault_id,
             )
-        except Exception as e:
-            rag_service = RAGService(
+        except Exception:
+            cached_service = RAGService(
+                user_id=user_id,
                 llm_provider="mock",
                 top_k=top_k or settings.RETRIEVER_TOP_K,
                 score_threshold=score_threshold if score_threshold is not None else settings.RETRIEVER_SCORE_THRESHOLD,
                 vault_id=vault_id,
             )
+        user_rag_services[user_id] = cached_service
     elif vault_id:
-        rag_service.switch_vault(vault_id)
+        cached_service.switch_vault(vault_id)
 
-    return rag_service
+    return cached_service
 
 
 # Request & Response Schemas
@@ -125,18 +172,77 @@ class ChatResponse(BaseModel):
     vault_id: Optional[str] = None
 
 
-# Endpoints: Multi-Vault Workspace Management
+# -------------------------------------------------------------
+# Endpoints: Authentication
+# -------------------------------------------------------------
+
+@app.post("/api/auth/register", response_model=TokenResponse)
+async def register(req: UserRegisterRequest):
+    """Register a new user, allocate isolated storage, and return JWT token."""
+    try:
+        user = auth_service.register_user(req)
+        token = auth_service.create_access_token(user)
+        return TokenResponse(
+            success=True,
+            token=token,
+            user=user,
+            message="Account created successfully!",
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
+
+
+@app.post("/api/auth/login", response_model=TokenResponse)
+async def login(req: UserLoginRequest):
+    """Authenticate user credentials and issue signed JWT token."""
+    user = auth_service.authenticate_user(req.username_or_email, req.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid username/email or password.",
+        )
+    token = auth_service.create_access_token(user)
+    return TokenResponse(
+        success=True,
+        token=token,
+        user=user,
+        message=f"Welcome back, {user.full_name or user.username}!",
+    )
+
+
+@app.get("/api/auth/me", response_model=UserResponse)
+async def get_me(current_user: UserResponse = Depends(get_current_user)):
+    """Retrieve authenticated user profile."""
+    return current_user
+
+
+@app.post("/api/auth/logout")
+async def logout(current_user: UserResponse = Depends(get_current_user)):
+    """Acknowledge logout and invalidate local user service cache."""
+    user_rag_services.pop(current_user.id, None)
+    return {"success": True, "message": "Signed out successfully."}
+
+
+# -------------------------------------------------------------
+# Endpoints: Multi-Vault Workspace Management (User Isolated)
+# -------------------------------------------------------------
+
 @app.get("/api/vaults")
-async def list_vaults():
-    """List all registered knowledge vaults with active status and chunk counts."""
-    service = get_rag_service()
+async def list_vaults(current_user: UserResponse = Depends(get_current_user)):
+    """List all registered knowledge vaults for current user."""
+    service = get_rag_service_for_user(user_id=current_user.id)
     return {"vaults": service.list_vaults()}
 
 
 @app.post("/api/vaults")
-async def create_vault(req: CreateVaultRequest):
-    """Create a new workspace vault with isolated vector collection."""
-    service = get_rag_service()
+async def create_vault(
+    req: CreateVaultRequest,
+    current_user: UserResponse = Depends(get_current_user),
+):
+    """Create a new workspace vault with isolated vector collection for current user."""
+    service = get_rag_service_for_user(user_id=current_user.id)
     new_vault = service.create_vault(
         name=req.name,
         description=req.description,
@@ -152,9 +258,12 @@ async def create_vault(req: CreateVaultRequest):
 
 
 @app.post("/api/vaults/{vault_id}/select")
-async def select_vault(vault_id: str):
-    """Switch active knowledge workspace."""
-    service = get_rag_service()
+async def select_vault(
+    vault_id: str,
+    current_user: UserResponse = Depends(get_current_user),
+):
+    """Switch active knowledge workspace for current user."""
+    service = get_rag_service_for_user(user_id=current_user.id)
     success = service.switch_vault(vault_id)
     if not success:
         raise HTTPException(status_code=404, detail=f"Vault '{vault_id}' not found.")
@@ -167,9 +276,12 @@ async def select_vault(vault_id: str):
 
 
 @app.delete("/api/vaults/{vault_id}")
-async def delete_vault(vault_id: str):
-    """Delete a workspace vault and its ChromaDB collection."""
-    service = get_rag_service()
+async def delete_vault(
+    vault_id: str,
+    current_user: UserResponse = Depends(get_current_user),
+):
+    """Delete a workspace vault and its ChromaDB collection for current user."""
+    service = get_rag_service_for_user(user_id=current_user.id)
     target = service.vault_manager.get_vault(vault_id)
     if not target:
         raise HTTPException(status_code=404, detail="Vault not found.")
@@ -188,14 +300,20 @@ async def delete_vault(vault_id: str):
 
 
 @app.get("/api/stats")
-async def get_stats(vault_id: Optional[str] = Query(None)):
-    """Return knowledge base status and vector database statistics for workspace."""
-    service = get_rag_service(vault_id=vault_id)
+async def get_stats(
+    vault_id: Optional[str] = Query(None),
+    current_user: UserResponse = Depends(get_current_user),
+):
+    """Return knowledge base status and vector database statistics for user workspace."""
+    service = get_rag_service_for_user(user_id=current_user.id, vault_id=vault_id)
     return service.get_stats(vault_id=vault_id)
 
 
 @app.post("/api/settings/api-key")
-async def save_api_key(req: SetApiKeyRequest):
+async def save_api_key(
+    req: SetApiKeyRequest,
+    current_user: UserResponse = Depends(get_current_user),
+):
     """Save an API key to the active environment and .env file."""
     prov = req.provider.lower()
     key = req.api_key.strip()
@@ -211,53 +329,48 @@ async def save_api_key(req: SetApiKeyRequest):
     lines = []
     if env_file.exists():
         lines = env_file.read_text().splitlines()
-    
+
     key_var = f"{prov.upper()}_API_KEY"
     new_lines = [l for l in lines if not l.startswith(f"{key_var}=")]
     new_lines.append(f"{key_var}={key}")
     env_file.write_text("\n".join(new_lines) + "\n")
 
-    # Reset global rag_service so next call picks up the new key
-    global rag_service
-    rag_service = None
+    # Clear user cached services so they re-initialize with new keys
+    user_rag_services.clear()
 
     return {"success": True, "message": f"{prov.title()} API key saved successfully!"}
 
 
 @app.get("/api/notes")
-async def get_indexed_notes(vault_id: Optional[str] = Query(None)):
-    """List all currently indexed notes for active or target workspace."""
-    service = get_rag_service(vault_id=vault_id)
+async def get_indexed_notes(
+    vault_id: Optional[str] = Query(None),
+    current_user: UserResponse = Depends(get_current_user),
+):
+    """List all currently indexed notes for current user's active or target workspace."""
+    service = get_rag_service_for_user(user_id=current_user.id, vault_id=vault_id)
     vid = vault_id or service.vault_manager.active_vault_id
     vault_storage = service.get_vault_storage_dir(vid)
 
     notes = []
-    # 1. Check custom uploaded files in this vault
-    vault_files = [p for p in sorted(vault_storage.rglob("*")) if p.is_file() and p.suffix.lower() in [".md", ".pdf", ".txt"]]
-    
-    # 2. For default vault, if empty, fallback to sample vault files
-    target_vault_obj = service.vault_manager.get_vault(vid)
-    is_default = target_vault_obj.is_default if target_vault_obj else (vid == "default")
-    if is_default and not vault_files and settings.SAMPLE_VAULT_DIR.exists():
-        vault_files = [p for p in sorted(settings.SAMPLE_VAULT_DIR.rglob("*")) if p.is_file() and p.suffix.lower() in [".md", ".pdf", ".txt"]]
-        root_dir = settings.SAMPLE_VAULT_DIR
-    else:
-        root_dir = vault_storage
+    vault_files = [
+        p for p in sorted(vault_storage.rglob("*"))
+        if p.is_file() and p.suffix.lower() in [".md", ".pdf", ".txt"]
+    ]
 
     for p in vault_files:
         try:
-            rel = str(p.relative_to(root_dir))
+            rel = str(p.relative_to(vault_storage))
         except ValueError:
             rel = p.name
         size_kb = round(max(0.1, p.stat().st_size / 1024), 1)
-        folder = str(p.parent.relative_to(root_dir)) if p.parent != root_dir else "Root"
+        folder = str(p.parent.relative_to(vault_storage)) if p.parent != vault_storage else "Root"
         notes.append({
             "source": rel,
             "title": p.stem.replace("_", " ").replace("-", " ").title(),
             "folder": folder,
             "doc_type": "pdf" if p.suffix.lower() == ".pdf" else "md",
             "size_kb": size_kb,
-            "size_str": f"{size_kb} KB" if size_kb < 1024 else f"{round(size_kb/1024, 1)} MB",
+            "size_str": f"{size_kb} KB" if size_kb < 1024 else f"{round(size_kb / 1024, 1)} MB",
             "chunks_count": max(1, int(size_kb / 2)),
             "last_modified": p.stat().st_mtime,
         })
@@ -266,26 +379,26 @@ async def get_indexed_notes(vault_id: Optional[str] = Query(None)):
 
 
 @app.get("/api/notes/content")
-async def get_note_content(source: str, vault_id: Optional[str] = Query(None)):
-    """Retrieve raw content of an indexed note for preview."""
-    service = get_rag_service(vault_id=vault_id)
+async def get_note_content(
+    source: str,
+    vault_id: Optional[str] = Query(None),
+    current_user: UserResponse = Depends(get_current_user),
+):
+    """Retrieve raw content of a user's indexed note for preview."""
+    service = get_rag_service_for_user(user_id=current_user.id, vault_id=vault_id)
     vid = vault_id or service.vault_manager.active_vault_id
     vault_storage = service.get_vault_storage_dir(vid)
 
     target_file = vault_storage / source
     if not target_file.exists() or not target_file.is_file():
-        target_file = settings.SAMPLE_VAULT_DIR / source
-        if not target_file.exists() or not target_file.is_file():
-            target_file = settings.UPLOAD_DIR / source
-            if not target_file.exists() or not target_file.is_file():
-                raise HTTPException(status_code=404, detail=f"Note '{source}' not found")
+        raise HTTPException(status_code=404, detail=f"Note '{source}' not found in your workspace.")
 
     if target_file.suffix.lower() == ".pdf":
         return {
             "source": source,
             "title": target_file.stem,
             "doc_type": "pdf",
-            "content": f"PDF Document: {target_file.name} ({round(target_file.stat().st_size / 1024, 1)} KB)\nVector chunks extracted and indexed in ChromaDB.",
+            "content": f"PDF Document: {target_file.name} ({round(target_file.stat().st_size / 1024, 1)} KB)\nVector chunks extracted and indexed in your private ChromaDB collection.",
         }
 
     try:
@@ -301,9 +414,12 @@ async def get_note_content(source: str, vault_id: Optional[str] = Query(None)):
 
 
 @app.post("/api/sample-vault")
-async def load_sample_vault(vault_id: Optional[str] = Query(None)):
-    """1-Click instant demo vault indexing into target workspace."""
-    service = get_rag_service(vault_id=vault_id)
+async def load_sample_vault(
+    vault_id: Optional[str] = Query(None),
+    current_user: UserResponse = Depends(get_current_user),
+):
+    """1-Click instant demo vault indexing into user's private workspace."""
+    service = get_rag_service_for_user(user_id=current_user.id, vault_id=vault_id)
     try:
         result = service.load_sample_vault(vault_id=vault_id)
         return {
@@ -325,8 +441,9 @@ async def upload_documents(
     files: Optional[List[UploadFile]] = File(None),
     file: Optional[UploadFile] = File(None),
     vault_id: Optional[str] = Query(None),
+    current_user: UserResponse = Depends(get_current_user),
 ):
-    """Upload and index multiple files into target workspace."""
+    """Upload and index multiple files into user's target workspace."""
     upload_list: List[UploadFile] = []
     if files:
         upload_list.extend(files)
@@ -336,7 +453,7 @@ async def upload_documents(
     if not upload_list:
         raise HTTPException(status_code=400, detail="No files provided for upload.")
 
-    service = get_rag_service(vault_id=vault_id)
+    service = get_rag_service_for_user(user_id=current_user.id, vault_id=vault_id)
     total_notes_processed = 0
     total_chunks_processed = 0
     processed_filenames = []
@@ -400,9 +517,13 @@ async def upload_documents(
 
 
 @app.post("/api/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest):
-    """Process query through LangGraph router and grounded RAG workflow."""
-    service = get_rag_service(
+async def chat(
+    request: ChatRequest,
+    current_user: UserResponse = Depends(get_current_user),
+):
+    """Process query through LangGraph router and grounded RAG workflow for user."""
+    service = get_rag_service_for_user(
+        user_id=current_user.id,
         provider=request.provider,
         model=request.model,
         api_key=request.api_key,
@@ -413,13 +534,6 @@ async def chat(request: ChatRequest):
 
     if not request.query.strip():
         raise HTTPException(status_code=400, detail="Query cannot be empty.")
-
-    # If index is empty, automatically load sample vault so user gets immediate results
-    if service.vector_store.count() == 0:
-        try:
-            service.load_sample_vault(vault_id=request.vault_id)
-        except Exception:
-            pass
 
     try:
         response_data = service.ask(
@@ -434,11 +548,18 @@ async def chat(request: ChatRequest):
 
 
 @app.post("/api/reset")
-async def reset_database(vault_id: Optional[str] = Query(None)):
-    """Clear all vector embeddings for active or target workspace."""
-    service = get_rag_service(vault_id=vault_id)
+async def reset_database(
+    vault_id: Optional[str] = Query(None),
+    current_user: UserResponse = Depends(get_current_user),
+):
+    """Clear all vector embeddings for user's active or target workspace."""
+    service = get_rag_service_for_user(user_id=current_user.id, vault_id=vault_id)
     service.clear_vault(vault_id=vault_id)
-    return {"success": True, "message": "Knowledge base vector store cleared.", "stats": service.get_stats(vault_id=vault_id)}
+    return {
+        "success": True,
+        "message": "Knowledge base vector store cleared for this workspace.",
+        "stats": service.get_stats(vault_id=vault_id),
+    }
 
 
 # Serve static frontend build if present

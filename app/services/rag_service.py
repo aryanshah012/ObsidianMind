@@ -1,7 +1,8 @@
 """
 Service facade for ObsidianMind.
 Integrates Ingestion, Vector Storage, Retrieval, and LangGraph Agent workflow
-into a clean, thread-safe service API for the UI and CLI with Multi-Vault support.
+into a clean, thread-safe service API for the UI and CLI with Multi-Vault support
+and complete per-user isolation.
 """
 
 import time
@@ -14,7 +15,6 @@ from langchain_core.documents import Document
 from app.config import settings
 from app.ingestion.zip_extractor import extract_zip_safely
 from app.ingestion.loader import ObsidianVaultLoader, IngestionResult
-from app.ingestion.parser import ObsidianDocument
 from app.embeddings.embedder import get_embedder
 from app.vectorstore.chroma_store import ChromaVectorStore
 from app.retrieval.retriever import ObsidianRetriever
@@ -24,10 +24,11 @@ from app.services.vault_manager import VaultManager, VaultMetadata
 
 
 class RAGService:
-    """High-level service facade for ObsidianMind with Multi-Vault workspace support."""
+    """High-level service facade for ObsidianMind with Multi-Vault and User isolation support."""
 
     def __init__(
         self,
+        user_id: Optional[str] = None,
         llm_provider: Optional[str] = None,
         llm_model: Optional[str] = None,
         api_key: Optional[str] = None,
@@ -37,8 +38,10 @@ class RAGService:
         score_threshold: Optional[float] = None,
         vault_id: Optional[str] = None,
     ):
-        # Vault Workspace Manager
-        self.vault_manager = VaultManager()
+        self.user_id = user_id
+
+        # Vault Workspace Manager scoped to user
+        self.vault_manager = VaultManager(user_id=user_id)
         if vault_id:
             self.vault_manager.set_active_vault(vault_id)
 
@@ -85,10 +88,10 @@ class RAGService:
         return success
 
     def list_vaults(self) -> List[Dict[str, Any]]:
-        """Return list of vaults with live vector counts."""
+        """Return list of user vaults with live vector counts."""
         vaults = self.vault_manager.list_vaults()
         current_active = self.vault_manager.active_vault_id
-        
+
         results = []
         for v in vaults:
             col_name = v.get("collection_name", "obsidian_vault")
@@ -139,12 +142,21 @@ class RAGService:
             active_vault = self.vault_manager.get_active_vault()
             self.vector_store.switch_collection(active_vault.collection_name)
             self.retriever.vector_store = self.vector_store
+
+            # Remove disk storage for deleted vault
+            vault_dir = self.get_vault_storage_dir(vault_id)
+            if vault_dir.exists():
+                shutil.rmtree(vault_dir, ignore_errors=True)
+
         return success
 
     def get_vault_storage_dir(self, vault_id: Optional[str] = None) -> Path:
         """Return and ensure disk storage directory for documents in target vault."""
         vid = vault_id or self.vault_manager.active_vault_id
-        target_dir = settings.DATA_DIR / "vaults" / vid
+        if self.user_id:
+            target_dir = settings.USERS_DIR / self.user_id / "vaults" / vid
+        else:
+            target_dir = settings.DATA_DIR / "vaults" / vid
         target_dir.mkdir(parents=True, exist_ok=True)
         return target_dir
 
@@ -280,17 +292,27 @@ class RAGService:
         return ingest_result
 
     def load_sample_vault(self, clear_existing: bool = True, vault_id: Optional[str] = None) -> IngestionResult:
-        """Load pre-packaged sample Obsidian vault into target workspace."""
+        """Load pre-packaged sample Obsidian vault into user's private workspace."""
         if vault_id:
             self.switch_vault(vault_id)
 
-        sample_dir = settings.SAMPLE_VAULT_DIR
+        target_dir = self.get_vault_storage_dir(vault_id)
+
         sample_zip = settings.SAMPLE_VAULT_ZIP
+        sample_dir = settings.SAMPLE_VAULT_DIR
 
         if sample_zip.exists():
             return self.ingest_zip_vault(sample_zip, clear_existing=clear_existing, vault_id=vault_id)
         elif sample_dir.exists():
-            return self.ingest_directory_vault(sample_dir, clear_existing=clear_existing, vault_id=vault_id)
+            # Copy sample files into user's private vault storage directory
+            for item in sample_dir.rglob("*"):
+                if item.is_file() and not item.name.startswith("."):
+                    rel_path = item.relative_to(sample_dir)
+                    dest_file = target_dir / rel_path
+                    dest_file.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(item, dest_file)
+
+            return self.ingest_directory_vault(target_dir, clear_existing=clear_existing, vault_id=vault_id)
         else:
             raise FileNotFoundError("Sample vault files not found in data/ directory.")
 
@@ -337,6 +359,15 @@ class RAGService:
         self.last_ingestion_result = None
         self.last_indexed_at = None
 
+        # Clean files in user's vault storage
+        target_dir = self.get_vault_storage_dir(vault_id)
+        if target_dir.exists():
+            for item in target_dir.iterdir():
+                if item.is_file():
+                    item.unlink()
+                elif item.is_dir():
+                    shutil.rmtree(item, ignore_errors=True)
+
     def get_stats(self, vault_id: Optional[str] = None) -> Dict[str, Any]:
         """Retrieve diagnostics and status for active or specified vault workspace."""
         if vault_id and vault_id != self.vault_manager.active_vault_id:
@@ -345,20 +376,16 @@ class RAGService:
         active_vault = self.vault_manager.get_active_vault()
         total_chunks = self.vector_store.count()
 
-        # Check files on disk in data/vaults/{vault_id}
+        # Check files on disk in target vault storage
         vault_storage = self.get_vault_storage_dir(active_vault.id)
         vault_files = [p for p in vault_storage.rglob("*") if p.is_file() and p.suffix.lower() in [".md", ".pdf", ".txt"]]
-        
-        # If default vault has no custom uploads, include sample vault
-        if active_vault.is_default and not vault_files and settings.SAMPLE_VAULT_DIR.exists():
-            vault_files = [p for p in settings.SAMPLE_VAULT_DIR.rglob("*") if p.is_file() and p.suffix.lower() in [".md", ".pdf", ".txt"]]
 
         total_size_bytes = sum(p.stat().st_size for p in vault_files)
         total_notes = len(vault_files)
 
         folder_counts: Dict[str, int] = {}
         for p in vault_files:
-            folder_name = p.parent.name if p.parent != vault_storage and p.parent != settings.SAMPLE_VAULT_DIR else "Root"
+            folder_name = p.parent.name if p.parent != vault_storage else "Root"
             folder_counts[folder_name] = folder_counts.get(folder_name, 0) + 1
 
         total_size_mb = f"{round(max(0.1, total_size_bytes / (1024 * 1024)), 1)} MB" if total_size_bytes > 0 else "0.0 MB"
