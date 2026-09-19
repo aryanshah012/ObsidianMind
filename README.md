@@ -2,6 +2,7 @@
 
 > **Production-Quality Knowledge Assistant with Agentic Query Routing (LangGraph) & Grounded RAG (ChromaDB)**
 
+[![CI](https://github.com/aryanshah012/ObsidianMind/actions/workflows/ci.yml/badge.svg)](https://github.com/aryanshah012/ObsidianMind/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![LangChain](https://img.shields.io/badge/LangChain-v0.2%2B-green.svg)](https://www.langchain.com/)
 [![LangGraph](https://img.shields.io/badge/LangGraph-StateGraph-orange.svg)](https://langchain-ai.github.io/langgraph/)
@@ -342,3 +343,11 @@ The project includes an automated evaluation benchmark (`eval/run_eval.py`) eval
 
 ## 📄 License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+
+## Engineering Standards
+
+- Automated CI validates changes on pushes and pull requests.
+- Dependabot monitors Python and/or JavaScript dependencies where applicable.
+- [CONTRIBUTING.md](CONTRIBUTING.md) documents the development workflow and review expectations.
+- [SECURITY.md](SECURITY.md) documents responsible vulnerability reporting and security principles.
