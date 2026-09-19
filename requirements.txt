@@ -16,7 +16,7 @@ sentence-transformers>=2.2.0
 
 # API Backend & Server
 fastapi>=0.110.0
-uvicorn>=0.28.0
+uvicorn>=0.53.0
 python-multipart>=0.0.9
 pyjwt>=2.8.0
 
