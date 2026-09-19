@@ -1,5 +1,5 @@
 # Core LangChain & LangGraph
-langchain>=0.2.0
+langchain>=1.4.0
 langchain-core>=0.2.0
 langchain-community>=0.2.0
 langgraph>=0.2.0
