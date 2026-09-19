@@ -21,7 +21,7 @@ python-multipart>=0.0.9
 pyjwt>=2.8.0
 
 # Streamlit (Optional / Fallback)
-streamlit>=1.35.0
+streamlit>=1.64.0
 
 # Document Parsing & Utilities
 pypdf>=4.0.0
